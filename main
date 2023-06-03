@@ -1,0 +1,85 @@
+from machine import Pin, PWM
+import time
+from ultrasonic import sonic
+from motor import Motor
+
+# definitions for setup in other files
+
+pwm = PWM(Pin(16))
+pwm.freq(50)
+
+motor_left = Motor("left", 8, 9, 6)
+motor_right = Motor("right", 10, 11, 7)
+
+TRIG = 19
+ECHO = 18
+ultrasonic_sensor = sonic(TRIG, ECHO)
+
+line_sensor_left = Pin(26, Pin.IN)
+line_sensor_right = Pin(27, Pin.IN)
+
+
+def setServoAngle(angle):  # functions to call for in later parts
+    position = int(8000 * (angle / 180) + 1000)
+    pwm.duty_u16(position)  # Convert to 16-bit duty cycle
+
+
+def avg():  # average distance as inst distance can be unreliable
+    d1 = ultrasonic_sensor.distance_mm()
+    time.sleep(0.002)
+    d2 = ultrasonic_sensor.distance_mm()
+    time.sleep(0.002)
+    d3 = ultrasonic_sensor.distance_mm()
+    time.sleep(0.002)
+    d4 = ultrasonic_sensor.distance_mm()
+    time.sleep(0.002)
+    d5 = ultrasonic_sensor.distance_mm()
+    dist = (d1 + d2 + d3 + d4 + d5) / 5
+    return dist
+
+
+setServoAngle(80)
+on = True
+running = False
+
+while on:
+    if not running:
+        if line_sensor_left.value() == 0 and line_sensor_right.value() == 0:
+            dist = avg()
+            time.sleep(1.5)
+            if dist < 300:
+                while dist < 300:
+                    dist = avg()
+                    motor_left.set_forwards()
+                    motor_right.set_backwards()
+                    motor_left.duty(40)
+                    motor_right.duty(40)
+
+            motor_right.set_forwards()
+            motor_left.set_backwards()
+            motor_right.duty(0)
+            motor_left.duty(0)
+            running = True
+            time.sleep(0.2)
+            motor_right.set_forwards()
+            motor_left.set_forwards()
+            motor_left.duty(65)
+            motor_right.duty(50)
+
+    while running:
+        if line_sensor_left.value() == 1 and line_sensor_right.value() == 0:
+            motor_right.set_forwards()
+            motor_left.set_backwards()
+            motor_left.duty(35)
+            motor_right.duty(60)
+            setServoAngle(150)
+
+        elif line_sensor_right.value() == 1 and line_sensor_left.value() == 0:
+            motor_right.set_backwards()
+            motor_left.set_forwards()
+            motor_right.duty(35)
+            motor_left.duty(60)
+            setServoAngle(20)
+
+        else:
+            pass
