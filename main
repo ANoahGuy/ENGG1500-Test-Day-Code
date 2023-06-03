@@ -1,3 +1,5 @@
+# By Noah D. Edwards, Created 21/05/2023, Uploaded to GitHub 03/06/2023
+
 from machine import Pin, PWM
 import time
 from ultrasonic import sonic
